@@ -1,77 +1,67 @@
-function updateHistory() {
-    const historyList = document.getElementById('historyList');
-    historyList.innerHTML = '';
+window.onload = function () {
+    const elements = [document.getElementById('logo'), 
+                      document.getElementById('searchInput'), 
+                      document.getElementById('searchButton'), 
+                      document.getElementById('iFeelLuckyButton')];
     
-    const searchHistory = JSON.parse(localStorage.getItem('searchHistory')) || [];
-
-    searchHistory.forEach((term, index) => {
-        const listItem = document.createElement('li');
-        listItem.textContent = term;
-
-        const deleteButton = document.createElement('button');
-        deleteButton.textContent = 'Delete';
-        deleteButton.style.marginLeft = '10px';
-        deleteButton.style.backgroundColor = '#052a58'; 
-        deleteButton.style.color = 'white';
-        deleteButton.style.border = 'none';
-        deleteButton.style.padding = '5px';
-        deleteButton.style.borderRadius = '3px';
-        deleteButton.style.cursor = 'pointer';
-
-        const uniqueClass = 'delete-btn-' + index;  
-        deleteButton.classList.add(uniqueClass);
-
-        listItem.appendChild(deleteButton);
-
-        const style = document.createElement('style');
-        style.innerHTML = `
-            .${uniqueClass}:hover {
-                background-color: white; 
-                color: #052a58;
-            }
-        `;
-        document.head.appendChild(style);
-
-        deleteButton.addEventListener('click', () => {
-            deleteFromHistory(index);
-        });
-
-        listItem.appendChild(deleteButton);
-        historyList.appendChild(listItem);
-        
-        // Add gravity class to dynamically created list items
-        listItem.style.position = 'relative';
-        listItem.style.opacity = '0';
-        listItem.style.top = '-800px';
-        listItem.style.animation = 'fall 2s ease-out forwards';
+    // Apply gravity effect to each element
+    elements.forEach(el => {
+        makeFall(el);
     });
-}
+    
+    function makeFall(element) {
+        element.classList.add('fall');
+        element.style.left = (window.innerWidth / 2 - element.offsetWidth / 2) + 'px';
+        element.style.top = '100px';
 
-function addToHistory(searchTerm) {
-    let searchHistory = JSON.parse(localStorage.getItem('searchHistory')) || [];
-    searchHistory.push(searchTerm);
-    localStorage.setItem('searchHistory', JSON.stringify(searchHistory));
-    updateHistory();
-}
+        let velocity = 0;
+        let gravity = 0.5; // Gravity constant
+        let bounceFactor = 0.7; // Bounce effect
 
-function deleteFromHistory(index) {
-    let searchHistory = JSON.parse(localStorage.getItem('searchHistory')) || [];
-    searchHistory.splice(index, 1);
-    localStorage.setItem('searchHistory', JSON.stringify(searchHistory));
-    updateHistory();
-}
+        function applyGravity() {
+            velocity += gravity;
+            let topPosition = element.offsetTop + velocity;
+            
+            if (topPosition + element.offsetHeight >= window.innerHeight) {
+                topPosition = window.innerHeight - element.offsetHeight;
+                velocity = -velocity * bounceFactor; // Bounce when hitting bottom
+            }
 
-document.getElementById('searchButton').addEventListener('click', () => {
-    const searchInput = document.getElementById('searchInput').value;
-    if (searchInput) {
-        addToHistory(searchInput);
-        document.getElementById('searchInput').value = ''; 
+            element.style.top = topPosition + 'px';
+
+            requestAnimationFrame(applyGravity);
+        }
+
+        applyGravity();
     }
-});
 
-document.getElementById('clearButton').addEventListener('click', () => {
-    localStorage.removeItem('searchHistory');
-    updateHistory();
-});
+    // Make elements draggable by mouse (for interaction)
+    elements.forEach(el => {
+        el.onmousedown = function (event) {
+            event.preventDefault();
 
-document.addEventListener('DOMContentLoaded', updateHistory);
+            let shiftX = event.clientX - el.getBoundingClientRect().left;
+            let shiftY = event.clientY - el.getBoundingClientRect().top;
+
+            function moveAt(pageX, pageY) {
+                el.style.left = pageX - shiftX + 'px';
+                el.style.top = pageY - shiftY + 'px';
+            }
+
+            function onMouseMove(event) {
+                moveAt(event.pageX, event.pageY);
+            }
+
+            document.addEventListener('mousemove', onMouseMove);
+
+            document.onmouseup = function () {
+                document.removeEventListener('mousemove', onMouseMove);
+                el.onmouseup = null;
+            };
+        };
+
+        el.ondragstart = function () {
+            return false;
+        };
+    });
+};
